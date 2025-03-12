@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-FROM ubuntu:20.04
+FROM ubuntu:18.04
 MAINTAINER Christian Berger "christian.berger@gu.se"
 
 # Set the env variable DEBIAN_FRONTEND to noninteractive
