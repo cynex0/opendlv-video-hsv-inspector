@@ -78,6 +78,20 @@ int32_t main(int32_t argc, char **argv) {
             cvCreateTrackbar("Val (min)", "Inspector", &minV, 255);
             cvCreateTrackbar("Val (max)", "Inspector", &maxV, 255);
 
+            int hAdd{0};
+            int sAdd{0};
+            int vAdd{0};
+            cvCreateTrackbar("Hadd", "Inspector", &hAdd, 179);
+            cvCreateTrackbar("Sadd", "Inspector", &sAdd, 255);
+            cvCreateTrackbar("Vadd", "Inspector", &vAdd, 255);
+
+            int hSub{0};
+            int sSub{0};
+            int vSub{0};
+            cvCreateTrackbar("Hsub", "Inspector", &hSub, 179);
+            cvCreateTrackbar("Ssub", "Inspector", &sSub, 255);
+            cvCreateTrackbar("Vsub", "Inspector", &vSub, 255);
+
             // Endless loop; end the program by pressing Ctrl-C.
             while (cv::waitKey(10)) {
                 cv::Mat img;
@@ -100,11 +114,37 @@ int32_t main(int32_t argc, char **argv) {
                 cv::Mat imgHSV;
                 cvtColor(img, imgHSV, cv::COLOR_BGR2HSV);
 
-                cv::Mat imgColorSpace;
-                cv::inRange(imgHSV, cv::Scalar(minH, minS, minV), cv::Scalar(maxH, maxS, maxV), imgColorSpace);
+                std::vector<cv::Mat> hsvChannels;
+                cv::split(imgHSV, hsvChannels);
 
-                cv::imshow("Color-Space Image", imgColorSpace);
-                cv::imshow(sharedMemory->name().c_str(), img);
+                for (int i = 0; i < 3; ++i) {
+                    hsvChannels[i].convertTo(hsvChannels[i], CV_16S);
+                }
+
+                hsvChannels[0] = cv::min(cv::max(hsvChannels[0] - hSub, 0) + hAdd, 179);
+                hsvChannels[1] = cv::min(cv::max(hsvChannels[1] - sSub, 0) + sAdd, 255);
+                hsvChannels[2] = cv::min(cv::max(hsvChannels[2] - vSub, 0) + vAdd, 255);
+
+                for (int i = 0; i < 3; ++i) {
+                    hsvChannels[i].convertTo(hsvChannels[i], CV_8U);
+                }
+
+                cv::merge(hsvChannels, imgHSV);
+
+                // Create a mask using inRange
+                cv::Mat mask;
+                cv::inRange(imgHSV, cv::Scalar(minH, minS, minV), cv::Scalar(maxH, maxS, maxV), mask);
+
+                // Convert adjusted HSV back to BGR for display
+                cv::Mat adjustedBGR;
+                cv::cvtColor(imgHSV, adjustedBGR, cv::COLOR_HSV2BGR);
+
+                // Apply mask to show only matching areas
+                cv::Mat filtered;
+                adjustedBGR.copyTo(filtered, mask);
+
+                cv::imshow("Mask only", mask);
+                cv::imshow("Adjusted and masked", filtered);
             }
 
             if (nullptr != iplimage) {
